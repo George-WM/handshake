@@ -2,6 +2,7 @@
   "name": "handshake",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "AI agent payment guardrail: x402 payments screened by Intercepta, escalated to human owners via World ID for Agents",
   "engines": {
     "node": ">=24"

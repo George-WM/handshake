@@ -1,0 +1,16 @@
+{
+  "name": "@handshake/seller",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@handshake/shared": "workspace:*",
+    "@x402/core": "^2.27.0",
+    "@x402/evm": "^2.27.0",
+    "@x402/express": "^2.27.0",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21"
+  }
+}

@@ -12,9 +12,11 @@ import { optionalEnv, requireEnv } from "../../packages/shared/src/index.js";
 const apiKey = requireEnv("INTERCEPTA_API_KEY");
 const riskyPayTo = optionalEnv(
   "RISKY_PAYTO_ADDRESS",
-  "0x722122dF12D4e14e13Ac3b6895a86e84145b6967",
+  "0x098B716B8Aaf21512996dC57EB0615e2383E2f96",
 );
-const FAKE_TOKEN_EXAMPLE = "0xd034ae6322251877bd4361e4c9afeddfd37af00c";
+// Base mainnet USDC — the mainnet equivalent the guard screens for the demo's
+// Base Sepolia payment asset. Expect trust=whitelist / action=info.
+const PAYMENT_TOKEN_MAINNET = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 
 console.log(`[verify-intercepta] quick-scan ${riskyPayTo} (BLOCK demo payTo)`);
 const scan = await quickScanAddress(riskyPayTo, apiKey);
@@ -35,17 +37,15 @@ if (verdict.verdict !== "BLOCK") {
   process.exit(1);
 }
 
-console.log(`\n[verify-intercepta] scan-token ${FAKE_TOKEN_EXAMPLE} (docs FAKE_TOKEN example)`);
-try {
-  const token = await scanToken(FAKE_TOKEN_EXAMPLE, apiKey, "1");
-  console.log(JSON.stringify(token, null, 2));
-  console.log(
-    token.action === "block"
-      ? "token verdict: action=block ✓"
-      : `token verdict: action=${token.action} (not block — pick another address for the stage-5 check)`,
+console.log(`\n[verify-intercepta] scan-token ${PAYMENT_TOKEN_MAINNET} (Base mainnet USDC)`);
+const token = await scanToken(PAYMENT_TOKEN_MAINNET, apiKey, "8453");
+console.log(JSON.stringify(token, null, 2));
+if (token.action !== "info" || token.trust !== "whitelist") {
+  console.error(
+    `[verify-intercepta] FAILED — expected whitelisted USDC (info), got action=${token.action} trust=${token.trust}`,
   );
-} catch (error) {
-  console.warn(`scan-token call failed (non-fatal): ${error instanceof Error ? error.message : error}`);
+  process.exit(1);
 }
+console.log("token verdict: whitelist/info ✓ (block-action path covered by verify-guard unit checks)");
 
 console.log("\n[verify-intercepta] PASSED — key works, BLOCK payTo confirmed. Next: pnpm demo:block");

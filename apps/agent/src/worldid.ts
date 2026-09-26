@@ -42,15 +42,34 @@ export async function requestHumanApproval(opts: {
   clientSecret: string;
   onPrompt: (prompt: ApprovalPrompt) => void;
 }): Promise<EscalationOutcome> {
-  const startRes = await fetch(DEVICE_AUTH_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: opts.clientId,
-      client_secret: opts.clientSecret,
-      scope: "openid",
-    }),
-  });
+  // The sandbox portal registers confidential clients with client_secret_basic:
+  // credentials go in the Authorization header, not the form body.
+  const basicAuth =
+    "Basic " +
+    Buffer.from(`${opts.clientId}:${opts.clientSecret}`).toString("base64");
+
+  let startRes: Response | undefined;
+  for (let attempt = 0; attempt < 3 && !startRes; attempt++) {
+    try {
+      startRes = await fetch(DEVICE_AUTH_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Authorization: basicAuth,
+        },
+        body: new URLSearchParams({ scope: "openid" }),
+      });
+    } catch {
+      await sleep(2000); // transient network failure — retry
+    }
+  }
+  if (!startRes) {
+    return {
+      approved: false,
+      outcome: "error",
+      detail: "device_authorization unreachable after 3 attempts",
+    };
+  }
   if (!startRes.ok) {
     const body = await startRes.text().catch(() => "");
     return {
@@ -74,32 +93,45 @@ export async function requestHumanApproval(opts: {
   while (Date.now() < deadline) {
     await sleep(intervalSec * 1000);
 
-    const res = await fetch(TOKEN_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        grant_type: DEVICE_GRANT,
-        client_id: opts.clientId,
-        client_secret: opts.clientSecret,
-        device_code: start.device_code,
-      }),
-    });
+    let res: Response;
+    let body: { error?: string; id_token?: string };
+    try {
+      res = await fetch(TOKEN_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Authorization: basicAuth,
+        },
+        body: new URLSearchParams({
+          grant_type: DEVICE_GRANT,
+          device_code: start.device_code,
+        }),
+      });
+      body = (await res.json()) as typeof body;
+    } catch {
+      continue; // transient network failure — keep polling until the deadline
+    }
 
     if (res.status === 503) {
       return { approved: false, outcome: "error", detail: "IdP temporarily unavailable" };
     }
 
-    const body = (await res.json()) as {
-      error?: string;
-      id_token?: string;
-    };
-
     if (res.ok && body.id_token) {
       try {
-        const { payload } = await jwtVerify(body.id_token, jwks, {
-          issuer: ISSUER,
-          audience: opts.clientId,
-        });
+        // Token is already redeemed at this point; tolerate a JWKS fetch blip.
+        let payload;
+        for (let attempt = 0; ; attempt++) {
+          try {
+            ({ payload } = await jwtVerify(body.id_token, jwks, {
+              issuer: ISSUER,
+              audience: opts.clientId,
+            }));
+            break;
+          } catch (error) {
+            if (attempt >= 2) throw error;
+            await sleep(2000);
+          }
+        }
         return {
           approved: true,
           outcome: "approved",

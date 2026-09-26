@@ -14,6 +14,7 @@
     "verify:payment": "tsx scripts/verify/verify-payment.ts",
     "verify:guard": "tsx scripts/verify/verify-guard.ts",
     "verify:intercepta": "tsx scripts/verify/verify-intercepta.ts",
+    "verify:escalation": "tsx scripts/verify/verify-escalation.ts",
     "demo:pass": "tsx scripts/demo.ts pass",
     "demo:block": "tsx scripts/demo.ts block",
     "demo:escalate": "tsx scripts/demo.ts escalate",

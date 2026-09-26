@@ -7,9 +7,10 @@ import { optionalEnv, requireEnv } from "@handshake/shared";
 const NETWORK = "eip155:84532"; // Base Sepolia
 const FACILITATOR_URL = "https://x402.org/facilitator";
 
-// OFAC-sanctioned Tornado Cash router — payTo for the BLOCK demo.
+// OFAC-sanctioned Lazarus Group EOA (Ronin Bridge exploiter) — payTo for the
+// BLOCK demo. Must be an EOA: Intercepta quick-scan 404s on contract addresses.
 // The payment never executes: the buyer's guardrail aborts before signing.
-const DEFAULT_RISKY_PAYTO = "0x722122dF12D4e14e13Ac3b6895a86e84145b6967";
+const DEFAULT_RISKY_PAYTO = "0x098B716B8Aaf21512996dC57EB0615e2383E2f96";
 
 const sellerAddress = requireEnv("SELLER_ADDRESS");
 const riskyPayTo = optionalEnv("RISKY_PAYTO_ADDRESS", DEFAULT_RISKY_PAYTO);

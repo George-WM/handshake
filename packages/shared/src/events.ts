@@ -5,6 +5,7 @@ export type Verdict = "PASS" | "BLOCK" | "ESCALATE";
 export type AttemptStatus =
   | "running"
   | "paid"
+  | "approved" // escalation drill only — approval granted, no payment attached
   | "blocked"
   | "denied"
   | "expired"

@@ -12,7 +12,7 @@ const port = Number(optionalEnv("SELLER_PORT", "4021"));
 const sellerAddress = requireEnv("SELLER_ADDRESS").toLowerCase();
 const riskyPayTo = optionalEnv(
   "RISKY_PAYTO_ADDRESS",
-  "0x722122dF12D4e14e13Ac3b6895a86e84145b6967",
+  "0x098B716B8Aaf21512996dC57EB0615e2383E2f96",
 ).toLowerCase();
 const base = `http://localhost:${port}`;
 

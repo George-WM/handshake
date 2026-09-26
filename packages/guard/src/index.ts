@@ -35,10 +35,20 @@ export type GuardFn = (input: GuardInput) => Promise<GuardDecision>;
 export interface GuardOptions {
   interceptaApiKey: string;
   escalateThresholdUsd: number;
-  /** Screen the payment token too (stage 5). Mainnet chainId for reputation data. */
-  scanTokenChainId?: string;
   onEscalate?: EscalateFn;
 }
+
+/**
+ * Token intelligence lives on mainnets, so testnet payment assets are screened
+ * via their mainnet counterpart. Unmapped assets skip the token scan.
+ */
+const MAINNET_TOKEN_EQUIVALENTS: Record<string, { address: string; chainId: string }> = {
+  // Base Sepolia USDC → Base mainnet USDC
+  "0x036cbd53842c5426634e7929541ec2318f3dcf7e": {
+    address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    chainId: "8453",
+  },
+};
 
 /**
  * Builds the guard that runs inside x402's onBeforePaymentCreation hook —
@@ -69,11 +79,12 @@ export function createGuard(options: GuardOptions) {
     });
 
     let tokenScan;
-    if (options.scanTokenChainId) {
+    const mainnetToken = MAINNET_TOKEN_EQUIVALENTS[input.asset.toLowerCase()];
+    if (mainnetToken) {
       tokenScan = await scanToken(
-        input.asset,
+        mainnetToken.address,
         options.interceptaApiKey,
-        options.scanTokenChainId,
+        mainnetToken.chainId,
       );
       pipelineBus.emitEvent({
         type: "token_screening_result",

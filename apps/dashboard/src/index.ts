@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 import express from "express";
 import QRCode from "qrcode";
@@ -81,6 +82,53 @@ app.post("/api/trigger/:scenario", (req, res) => {
     console.error("[dashboard] attempt crashed:", err),
   );
   res.json({ ok: true });
+});
+
+// Dev drill: exercises the REAL World ID device grant + the dashboard's QR/status
+// panel without a payment attached (the payment path escalates via the guard only).
+app.post("/api/dev/escalation-drill", (_req, res) => {
+  const escalate = buildEscalateFn();
+  if (!escalate) {
+    res.status(400).json({ error: "WORLD_ID_CLIENT_ID/SECRET not configured" });
+    return;
+  }
+  const id = randomUUID();
+  pipelineBus.emitEvent({
+    type: "attempt_started",
+    id,
+    endpoint: "worldid://escalation-drill",
+    at: Date.now(),
+  });
+  void (async () => {
+    const outcome = await escalate({
+      attemptId: id,
+      payTo: "escalation-drill",
+      amountUsd: 0,
+      asset: "",
+      network: "",
+    });
+    pipelineBus.emitEvent({
+      type: "attempt_finished",
+      id,
+      status: outcome.approved
+        ? "approved"
+        : outcome.outcome === "expired"
+          ? "expired"
+          : "denied",
+      detail: `drill: ${outcome.outcome}${outcome.detail ? ` — ${outcome.detail}` : ""}`,
+      at: Date.now(),
+    });
+  })().catch((err) => {
+    console.error("[dashboard] escalation drill crashed:", err);
+    pipelineBus.emitEvent({
+      type: "attempt_finished",
+      id,
+      status: "failed",
+      detail: `drill crashed: ${err instanceof Error ? err.message : err}`,
+      at: Date.now(),
+    });
+  });
+  res.json({ ok: true, id });
 });
 
 app.get("/api/history", (_req, res) => {

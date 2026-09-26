@@ -1,0 +1,24 @@
+{
+  "name": "handshake",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI agent payment guardrail: x402 payments screened by Intercepta, escalated to human owners via World ID for Agents",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "verify:harness": "tsx scripts/verify/verify-harness.ts",
+    "verify:seller": "tsx scripts/verify/verify-seller.ts",
+    "verify:payment": "tsx scripts/verify/verify-payment.ts",
+    "demo:pass": "tsx apps/agent/src/cli.ts pass",
+    "demo:block": "tsx apps/agent/src/cli.ts block",
+    "demo:escalate": "tsx apps/agent/src/cli.ts escalate",
+    "seller": "tsx apps/seller/src/index.ts",
+    "dashboard": "tsx apps/dashboard/src/index.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.0",
+    "typescript": "^5.7.0"
+  }
+}

@@ -13,9 +13,10 @@
     "verify:seller": "tsx scripts/verify/verify-seller.ts",
     "verify:payment": "tsx scripts/verify/verify-payment.ts",
     "verify:guard": "tsx scripts/verify/verify-guard.ts",
-    "demo:pass": "tsx apps/agent/src/cli.ts pass",
-    "demo:block": "tsx apps/agent/src/cli.ts block",
-    "demo:escalate": "tsx apps/agent/src/cli.ts escalate",
+    "verify:intercepta": "tsx scripts/verify/verify-intercepta.ts",
+    "demo:pass": "tsx scripts/demo.ts pass",
+    "demo:block": "tsx scripts/demo.ts block",
+    "demo:escalate": "tsx scripts/demo.ts escalate",
     "seller": "tsx apps/seller/src/index.ts",
     "dashboard": "tsx apps/dashboard/src/index.ts"
   },

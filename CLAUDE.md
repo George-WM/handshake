@@ -60,14 +60,14 @@ packages/shared env 로딩/검증 유틸 + 파이프라인 이벤트 타입 (인
 해당 단계의 검증 스크립트(`scripts/verify/*.ts` 또는 `pnpm demo:*`)를 **실제 실행해 통과**해야 완료. 통과 전 다음 단계 진행 금지. 완료 시 커밋.
 
 ## 구현 순서 (승인된 계획, 2026-09-27 수정: dashboard 필수 승격)
-1. ✅ 하네스 셋업 + 모노레포 스캐폴딩 → `pnpm verify:harness`
-2. seller (x402 V2, Base Sepolia) → `pnpm verify:seller` (402 + PAYMENT-REQUIRED 헤더 확인)
-3. buyer 결제 e2e (가드 없이) → `pnpm verify:payment` (paymentStatus=settled). 선행: Circle faucet USDC
-4. guard: quick-scan + 정책 엔진 + onBeforePaymentCreation 연결 → `pnpm demo:block` (라이브 API 키 필요)
-5. scan-token 추가 → verify 확장
-6. World ID ESCALATE (승인/거부/만료 전부) → `pnpm demo:escalate`
+1. ✅ 하네스 셋업 + 모노레포 스캐폴딩 → `pnpm verify:harness` 통과
+2. ✅ seller (x402 V2, Base Sepolia) → `pnpm verify:seller` 통과
+3. ✅ buyer 결제 e2e → `pnpm verify:payment` 통과 (settled tx 0x662b9bc1…, buyer 지갑 faucet 20 USDC 수령)
+4. 🔶 guard: 코드 완성 + 오프라인 정책 검증(`pnpm verify:guard` 6/6) 통과. **라이브 `pnpm demo:block` 통과 전까지 미완료** (Intercepta 키 대기)
+5. 🔶 scan-token: 클라이언트/정책 코드 완성 (키 도착 시 FAKE_TOKEN 주소로 라이브 검증)
+6. 🔶 World ID ESCALATE: device grant 모듈 완성 (`worldid.ts`, jose 검증 포함). `pnpm demo:escalate`는 client_id/secret 대기
 7. CLI 데모 3종 최종 점검 (`demo:pass` / `demo:block` / `demo:escalate` 원커맨드)
-8. **dashboard 웹 UI (필수)** — CLI 파이프라인 위에 씌움. demo 스크립트는 자동 검증용으로 유지
+8. 🔶 dashboard 웹 UI: 구축 완료, 실결제 트리거→SSE→히스토리 동작 확인. Intercepta/World ID 패널은 키 도착 후 라이브 확인
 9. README 완성 (트랙 체크리스트 기반)
 
 ## 제출 요건 체크리스트 (3개 트랙)
@@ -85,5 +85,6 @@ packages/shared env 로딩/검증 유틸 + 파이프라인 이벤트 타입 (인
 - [ ] README: 1문장 요약 / 팀 소개 + 소셜 핸들 / 셋업·테스트 방법
 
 ## 외부 블로커 현황 (2026-09-27)
-- Intercepta API 키: Typeform 신청 완료, 대기 중 → 도착 즉시 라이브 검증
-- World ID 포털 등록: 사용자 진행 중 → client_id/secret이 .env로 전달될 예정
+- Intercepta API 키: Typeform 신청 완료, 대기 중 → 도착 즉시 `.env` `INTERCEPTA_API_KEY` 설정 후 `pnpm demo:block` 라이브 검증
+- World ID 포털 등록: 사용자 진행 중 → `.env` `WORLD_ID_CLIENT_ID`/`WORLD_ID_CLIENT_SECRET` 설정 후 `pnpm demo:escalate`
+- buyer/seller는 로컬 생성 스로어웨이 테스트넷 키 (.env에 저장, 절대 실자산 금지). buyer 잔액: 20 USDC (Base Sepolia)

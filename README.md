@@ -1,5 +1,7 @@
 # Handshake — AI Agent Payment Guardrail
 
+![Handshake — screen every x402 payment, escalate to a human](docs/assets/cover.png)
+
 > **One-liner:** Handshake screens every x402 payment an AI agent is about to sign with Intercepta's live risk API — auto-paying safe requests, blocking sanctioned/scam recipients with the reason on screen, and escalating high-value payments to the agent's human owner via World ID for Agents.
 
 Built solo at **ETHGlobal Tokyo 2026**.

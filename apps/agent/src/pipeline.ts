@@ -15,6 +15,7 @@ import type { GuardDecision, GuardFn } from "@handshake/guard";
 const USDC_DECIMALS = 6;
 
 export type { GuardDecision, GuardFn, GuardInput } from "@handshake/guard";
+export { buildEscalateFn } from "./escalation.js";
 
 export interface PaymentResult {
   id: string;

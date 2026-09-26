@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Handshake — AI Agent Payment Guardrail</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --border: #30363d; --text: #e6edf3;
+    --dim: #8b949e; --green: #3fb950; --red: #f85149; --amber: #d29922; --blue: #58a6ff;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 24px; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  .sub { color: var(--dim); margin-bottom: 20px; }
+  .row { display: flex; gap: 16px; flex-wrap: wrap; }
+  .col { flex: 1 1 420px; min-width: 0; }
+  .panel { background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--dim); margin: 0 0 12px; }
+  button { background: #21262d; color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: 10px 14px; font: inherit; cursor: pointer; margin: 0 8px 8px 0; }
+  button:hover { border-color: var(--blue); }
+  button b { display: block; }
+  button small { color: var(--dim); }
+  #steps { list-style: none; margin: 0; padding: 0; }
+  #steps li { padding: 6px 0; border-bottom: 1px dashed var(--border); word-break: break-all; }
+  #steps li:last-child { border-bottom: 0; }
+  .t-PASS { color: var(--green); } .t-BLOCK { color: var(--red); } .t-ESCALATE { color: var(--amber); }
+  .s-paid { color: var(--green); } .s-blocked { color: var(--red); }
+  .s-denied, .s-expired { color: var(--amber); } .s-failed { color: var(--red); }
+  .s-running { color: var(--blue); }
+  pre { background: #0d1117; border: 1px solid var(--border); border-radius: 6px;
+    padding: 10px; overflow: auto; max-height: 260px; margin: 8px 0 0; font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+  th { color: var(--dim); font-weight: normal; }
+  #worldid { display: none; text-align: center; }
+  #worldid img { width: 180px; height: 180px; border-radius: 6px; background: #fff; padding: 6px; }
+  #worldid .code { font-size: 22px; letter-spacing: .2em; margin: 8px 0; }
+  #worldid a { color: var(--blue); word-break: break-all; }
+  .badge { display: inline-block; border: 1px solid var(--border); border-radius: 999px;
+    padding: 1px 10px; font-size: 12px; }
+</style>
+</head>
+<body>
+  <h1>🤝 Handshake</h1>
+  <div class="sub">AI agent payment guardrail — x402 · Intercepta · World ID for Agents</div>
+
+  <div class="panel">
+    <h2>Trigger a payment</h2>
+    <button onclick="trigger('pass')"><b>GET /api/data — $0.001</b><small>clean payTo → expect PASS + auto-pay</small></button>
+    <button onclick="trigger('block')"><b>GET /api/risky — $0.001</b><small>sanctioned payTo → expect BLOCK</small></button>
+    <button onclick="trigger('escalate')"><b>GET /api/premium — $0.50</b><small>over threshold → expect ESCALATE (World ID)</small></button>
+  </div>
+
+  <div class="row">
+    <div class="col">
+      <div class="panel">
+        <h2>Pipeline — current attempt <span id="attempt-id" class="badge"></span></h2>
+        <ul id="steps"><li style="color:var(--dim)">idle — trigger a payment above</li></ul>
+      </div>
+      <div class="panel" id="worldid">
+        <h2>Human approval required — World ID</h2>
+        <img id="wid-qr" alt="approval QR" />
+        <div class="code" id="wid-code"></div>
+        <a id="wid-link" target="_blank" rel="noopener"></a>
+        <div id="wid-status" style="margin-top:8px"></div>
+      </div>
+      <div class="panel">
+        <h2>Intercepta response (raw)</h2>
+        <pre id="intercepta">—</pre>
+      </div>
+    </div>
+    <div class="col">
+      <div class="panel">
+        <h2>Payment history</h2>
+        <table>
+          <thead><tr><th>time</th><th>endpoint</th><th>$</th><th>payTo</th><th>verdict</th><th>status</th></tr></thead>
+          <tbody id="history"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+<script>
+let currentId = null;
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+async function trigger(scenario) {
+  document.getElementById("steps").innerHTML = "";
+  document.getElementById("intercepta").textContent = "—";
+  hideWorldId();
+  await fetch("/api/trigger/" + scenario, { method: "POST" });
+}
+
+function step(html) {
+  const li = document.createElement("li");
+  li.innerHTML = html;
+  document.getElementById("steps").appendChild(li);
+}
+
+function hideWorldId() {
+  document.getElementById("worldid").style.display = "none";
+}
+
+function onEvent(e) {
+  if (e.type === "attempt_started") {
+    currentId = e.id;
+    document.getElementById("attempt-id").textContent = e.id.slice(0, 8);
+    document.getElementById("steps").innerHTML = "";
+    hideWorldId();
+    step("▶ request → " + esc(e.endpoint));
+  }
+  if (e.id !== currentId) { refreshHistory(); return; }
+
+  switch (e.type) {
+    case "payment_required":
+      step("402 payment required: <b>$" + esc(e.amountUsd) + "</b> → " + esc(e.payTo));
+      break;
+    case "screening_started":
+      step("🔍 Intercepta screening <b>" + esc(e.address) + "</b> …");
+      break;
+    case "screening_result": {
+      const traits = e.traits.map((t) => t.name);
+      step("🔍 toxicScore=<b>" + esc(e.toxicScore) + "</b> traits=[" +
+        traits.map((t) => '<span class="t-BLOCK">' + esc(t) + "</span>").join(", ") + "]");
+      document.getElementById("intercepta").textContent = JSON.stringify(e.raw, null, 2);
+      break;
+    }
+    case "token_screening_result":
+      step("🔍 token scan: action=<b>" + esc(e.action) + "</b> riskLevel=" + esc(e.riskLevel));
+      break;
+    case "verdict":
+      step('⚖ verdict: <b class="t-' + esc(e.verdict) + '">' + esc(e.verdict) + "</b> — " +
+        e.reasons.map(esc).join("; "));
+      break;
+    case "escalation_started": {
+      const w = document.getElementById("worldid");
+      w.style.display = "block";
+      document.getElementById("wid-qr").src = e.qrDataUrl || "";
+      document.getElementById("wid-code").textContent = e.userCode;
+      const a = document.getElementById("wid-link");
+      a.href = e.verificationUri; a.textContent = e.verificationUri;
+      document.getElementById("wid-status").innerHTML =
+        '<span class="s-running">waiting for owner… (expires in ' + esc(e.expiresIn) + "s)</span>";
+      step("🙋 escalated to human owner — code <b>" + esc(e.userCode) + "</b>");
+      break;
+    }
+    case "escalation_result": {
+      const cls = e.outcome === "approved" ? "s-paid" : "s-denied";
+      document.getElementById("wid-status").innerHTML =
+        '<span class="' + cls + '">' + esc(e.outcome) + (e.detail ? " — " + esc(e.detail) : "") + "</span>";
+      step("🙋 approval result: <b>" + esc(e.outcome) + "</b>");
+      break;
+    }
+    case "payment_settled":
+      step('✅ settled' + (e.transaction
+        ? ' — <a style="color:var(--blue)" target="_blank" href="https://sepolia.basescan.org/tx/' +
+          esc(e.transaction) + '">' + esc(e.transaction).slice(0, 20) + "…</a>" : ""));
+      break;
+    case "attempt_finished":
+      step('■ finished: <b class="s-' + esc(e.status) + '">' + esc(e.status) + "</b>" +
+        (e.detail ? " — " + esc(e.detail) : ""));
+      refreshHistory();
+      break;
+  }
+}
+
+async function refreshHistory() {
+  const rows = await (await fetch("/api/history")).json();
+  document.getElementById("history").innerHTML = rows.map((a) =>
+    "<tr><td>" + new Date(a.at).toLocaleTimeString() + "</td>" +
+    "<td>" + esc(new URL(a.endpoint).pathname) + "</td>" +
+    "<td>" + (a.amountUsd ?? "") + "</td>" +
+    "<td title=\"" + esc(a.payTo ?? "") + "\">" + esc((a.payTo ?? "").slice(0, 10)) + "…</td>" +
+    "<td class=\"t-" + esc(a.verdict ?? "") + "\">" + esc(a.verdict ?? "—") + "</td>" +
+    "<td class=\"s-" + esc(a.status) + "\">" + esc(a.status) + "</td></tr>").join("");
+}
+
+new EventSource("/api/events").onmessage = (m) => onEvent(JSON.parse(m.data));
+refreshHistory();
+</script>
+</body>
+</html>

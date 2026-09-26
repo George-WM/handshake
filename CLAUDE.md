@@ -22,9 +22,10 @@ AI 에이전트가 x402로 결제하기 전 Intercepta API로 리스크를 스�
   - BLOCK trait: `sanction_address`, `known_scammer`, `blacklist`, `fake_phishing_transfer`, `rug_pull` 등.
   - Scan Token: `GET /api/public/v2/extension/token-intelligence/token/{address}/risks?chainId=1` → `{ riskScore, riskLevel, action: block|warn|info, detectors[] }`.
   - 무료 플랜은 크레딧 제한 — 호출 아껴 쓰기. scan-message는 스코프 제외 (Permit 계열만 지원).
-  - BLOCK 데모용 메인넷 주소 후보: Tornado Cash `0x722122dF12D4e14e13Ac3b6895a86e84145b6967`, `0x8589427373D6D84E98730D7795D8f6f8731FDA16` (키 도착 시 실제 플래그 확인 필수).
+  - **quick-scan은 EOA 전용** (컨트랙트 주소는 404 → 클라이언트가 중립 처리). BLOCK 데모 주소는 Lazarus Group EOA `0x098B716B8Aaf21512996dC57EB0615e2383E2f96` (라이브 확인: toxicScore 100, known_scammer+sanction_address+blacklist). Tornado 라우터는 컨트랙트라 사용 불가.
+  - 토큰 스크리닝은 메인넷 등가 매핑으로 수행 (Base Sepolia USDC → Base mainnet USDC, guard의 MAINNET_TOKEN_EQUIVALENTS).
 - **World ID for Agents**: sandbox IdP `https://sandbox.auth.world.org` — 표준 **OIDC Device Authorization Grant (RFC 8628)**. SDK 없음, raw fetch + `jose`로 구현.
-  - `POST /api/v1/device_authorization` (client_id, client_secret, scope=openid) → `{ device_code, user_code, verification_uri_complete, expires_in, interval }`.
+  - `POST /api/v1/device_authorization` (scope=openid) → `{ device_code, user_code, verification_uri_complete, expires_in, interval }`. **클라이언트 인증은 `client_secret_basic`(Authorization 헤더)** — form body에 secret을 넣으면 `invalid_client` (라이브 확인).
   - `verification_uri_complete` + `user_code`를 인간에게 전달. `device_code`는 절대 노출 금지.
   - `POST /api/v1/token` (grant_type=urn:ietf:params:oauth:grant-type:device_code) 폴링. `authorization_pending`→대기, `slow_down`→interval+5s, **`access_denied`/`expired_token`/`invalid_grant`→중단(액션 미실행)**. 디바이스 코드 수명 20분. 자동 재시작 루프 금지.
   - 성공 시 `id_token`(RS256, 5분 수명)을 jose로 검증: issuer=`https://sandbox.auth.world.org`, aud=client_id, JWKS=`/.well-known/jwks.json`, 신선도는 `auth_time`(iat 아님).
@@ -34,7 +35,7 @@ AI 에이전트가 x402로 결제하기 전 Intercepta API로 리스크를 스�
 ```
 apps/seller     x402 V2 유료 API (Express). 엔드포인트 3개:
                   GET /api/data    $0.001 → 내 주소 (PASS 시나리오)
-                  GET /api/risky   $0.001 → Tornado 제재 주소 (BLOCK 시나리오)
+                  GET /api/risky   $0.001 → Lazarus 제재 EOA (BLOCK 시나리오)
                   GET /api/premium $0.50  → 내 주소, 임계값 초과 (ESCALATE 시나리오)
 apps/agent      buyer 에이전트. 파이프라인 = 402 감지 → guard 스크리닝 → PASS/BLOCK/ESCALATE 분기.
                 파이프라인을 라이브러리로 export (dashboard가 import). CLI 엔트리 별도.
@@ -63,12 +64,12 @@ packages/shared env 로딩/검증 유틸 + 파이프라인 이벤트 타입 (인
 1. ✅ 하네스 셋업 + 모노레포 스캐폴딩 → `pnpm verify:harness` 통과
 2. ✅ seller (x402 V2, Base Sepolia) → `pnpm verify:seller` 통과
 3. ✅ buyer 결제 e2e → `pnpm verify:payment` 통과 (settled tx 0x662b9bc1…, buyer 지갑 faucet 20 USDC 수령)
-4. 🔶 guard: 코드 완성 + 오프라인 정책 검증(`pnpm verify:guard` 6/6) 통과. **라이브 `pnpm demo:block` 통과 전까지 미완료** (Intercepta 키 대기)
-5. 🔶 scan-token: 클라이언트/정책 코드 완성 (키 도착 시 FAKE_TOKEN 주소로 라이브 검증)
-6. 🔶 World ID ESCALATE: device grant 모듈 완성 (`worldid.ts`, jose 검증 포함). `pnpm demo:escalate`는 client_id/secret 대기
+4. ✅ guard: 라이브 `pnpm verify:intercepta` + `pnpm demo:block` 통과 (Lazarus EOA → BLOCK, 서명 전 중단)
+5. ✅ scan-token: 메인넷 등가 매핑으로 라이브 통과 (Base USDC whitelist/info; block 분기는 verify-guard 유닛 커버)
+6. 🔶 World ID ESCALATE: 승인 ✅(id_token 백엔드 검증) / 거부 ✅(dashboard 실시간 확인) / 만료 ⏳(폴러 대기 중)
 7. CLI 데모 3종 최종 점검 (`demo:pass` / `demo:block` / `demo:escalate` 원커맨드)
-8. 🔶 dashboard 웹 UI: 구축 완료, 실결제 트리거→SSE→히스토리 동작 확인. Intercepta/World ID 패널은 키 도착 후 라이브 확인
-9. README 완성 (트랙 체크리스트 기반)
+8. ✅ dashboard: PASS/BLOCK 라이브 렌더 확인 (Intercepta 원본 traits, BLOCK 사유), World ID QR/상태 패널 확인
+9. README 90% (Intercepta 피드백 반영 완료; 데모 영상 링크만 남음)
 
 ## 제출 요건 체크리스트 (3개 트랙)
 ### Intercepta

@@ -40,8 +40,8 @@ World App(sandbox) 설치된 폰 준비, basescan 탭 미리 열기. 녹화 전 
 
 **화면**: `GET /api/risky — $0.001` 버튼 클릭. verdict BLOCK까지 진행되는 파이프라인.
 
-> "Now the same agent hits a malicious seller. Same price, but the payout address is the
-> OFAC-sanctioned Tornado Cash router — a real mainnet address."
+> "Now the same agent hits a malicious seller. Same price, but the payout address belongs
+> to the Lazarus Group — the Ronin Bridge exploiters, OFAC-sanctioned, a real mainnet address."
 
 **클로즈업 (필수, Intercepta 심사 기준)**: ① Intercepta 원본 응답 패널로 줌 —
 `toxicScore`와 `traits[]` 배열의 `sanction_address` 항목을 마우스로 하이라이트.

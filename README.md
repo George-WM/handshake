@@ -35,7 +35,7 @@ The guard runs inside the x402 client's `onBeforePaymentCreation` lifecycle hook
 
 ```bash
 pnpm demo:pass      # $0.001 → clean address: screened, verdict PASS, auto-paid on Base Sepolia
-pnpm demo:block     # $0.001 → OFAC-sanctioned Tornado Cash router: verdict BLOCK, reason shown, nothing signed
+pnpm demo:block     # $0.001 → OFAC-sanctioned Lazarus Group address: verdict BLOCK, reason shown, nothing signed
 pnpm demo:escalate  # $0.50 (over $0.10 threshold): World ID approval link+code → approve = paid / deny or 20-min expiry = aborted
 pnpm seller & pnpm dashboard   # same three scenarios in the web UI at http://localhost:3000
 ```
@@ -76,17 +76,20 @@ pnpm verify:intercepta  # live API smoke test: sanctioned payTo screens as BLOCK
 
 - **Live API call before signing, result decides the action** — call site: [`packages/guard/src/intercepta.ts`](packages/guard/src/intercepta.ts) (`quickScanAddress`, `scanToken`), invoked from [`packages/guard/src/index.ts`](packages/guard/src/index.ts) inside the x402 `onBeforePaymentCreation` hook wired in [`apps/agent/src/pipeline.ts`](apps/agent/src/pipeline.ts). The verdict (`PASS`/`BLOCK`/`ESCALATE`) is computed in [`packages/guard/src/policy.ts`](packages/guard/src/policy.ts) from `toxicScore` + `traits[]` (+ token `action`). No mocks anywhere in the payment path.
 - **Pass + block demos with reason** — `pnpm demo:pass` and `pnpm demo:block`; the dashboard renders the raw quick-scan response (toxicScore, full `traits[]`) and the blocking trait(s) next to the verdict.
-- **Mainnet screening target** — payments settle on Base Sepolia, but the screened `payTo` of the block demo is the real, OFAC-sanctioned Tornado Cash router `0x722122dF12D4e14e13Ac3b6895a86e84145b6967` (mainnet reputation data).
-- **API feedback (3–5 lines):**
-  <!-- TODO(live verification): fill after running pnpm verify:intercepta + demo:block with the live key -->
-  _pending live key — placeholder_
+- **Mainnet screening target** — payments settle on Base Sepolia, but the screened `payTo` of the block demo is the real, OFAC-sanctioned Lazarus Group (Ronin Bridge exploiter) EOA `0x098B716B8Aaf21512996dC57EB0615e2383E2f96`, which live-scans at `toxicScore: 100` with `known_scammer` + `sanction_address` + `blacklist` traits. The payment token is screened via its mainnet twin (Base Sepolia USDC → Base mainnet USDC, `trust: whitelist`).
+- **API feedback (from live integration):**
+  1. Time to first successful call was under five minutes once the key arrived — `X-API-KEY` header, clean REST, no SDK needed.
+  2. The most confusing part: quick-scan is **EOA-only** and returns 404 on contract addresses — our first BLOCK candidate (Tornado Cash router, a contract) silently "passed" as no-data until we caught it; the docs don't call this restriction out.
+  3. The `traits[]` descriptions are demo gold — human-readable reasons we could pipe straight to the UI without any mapping table.
+  4. Wishlist: a documented set of flagged test addresses per category (we had to hunt for a sanctioned EOA that actually flags), and 404-vs-"clean" disambiguation in quick-scan (an explicit `no_data` response would prevent unknown-address false-passes).
+  5. Also, the scan-token docs example address is not a real token (404s), and remaining-credit visibility on the key would help hackathon budgeting.
 
 ### 🌐 World ID for Agents
 
 - **Full journey** — `pnpm demo:escalate`: agent hits the $0.10 policy threshold → backend starts an OIDC **device authorization grant** (RFC 8628) at `sandbox.auth.world.org` → approval link + `user_code` surface in the CLI and as a QR code in the dashboard → owner proves with the sandbox World App and approves → backend polls the token endpoint, receives the `id_token`, **verifies it server-side with `jose` against the IdP JWKS** (issuer, audience, signature, `auth_time`) → only then is the payment signed.
 - **Denied / expired / cancelled → no action** — `access_denied` and `expired_token` (20-min device-code lifetime) both resolve to a non-approved outcome in [`apps/agent/src/worldid.ts`](apps/agent/src/worldid.ts); the guard returns `abort` and the payment is never signed. The demo shows the deny path by pressing "deny" in the approval page.
 - **Backend verification, client never trusted** — the agent only ever sees the approval link and user code; `device_code`, tokens, and the verified `sub` stay in the backend (`worldid.ts`). No client-supplied value is trusted.
-- **Integration feedback** — *time to first success:* about 2 hours from "which docs are real?" to a fully working device-grant flow — fast, because it's standards-honest OIDC and any HTTP client works, no SDK required. *Main friction:* discoverability — `sandbox.auth.world.org/docs` is a marketing SPA, and the actual integration guides are only served through the MCP server (`/mcp`, `get_idp_guide`), which is great for agents but hard for a human skimming with a browser; also, client registration demands an exact HTTPS redirect URL even for a device-grant-only client that never redirects. *One improvement:* publish the MCP-served guides as plain linkable web pages, and allow "no redirect / device-grant-only" client registration.
+- **Integration feedback** — *time to first success:* about 2 hours from "which docs are real?" to a fully working device-grant flow — fast, because it's standards-honest OIDC and any HTTP client works, no SDK required. *Main friction:* (1) discoverability — `sandbox.auth.world.org/docs` is a marketing SPA, and the actual integration guides are only served through the MCP server (`/mcp`, `get_idp_guide`), which is great for agents but hard for a human skimming with a browser; (2) the portal registers clients as `client_secret_basic`, but that's not surfaced anywhere — our first `client_secret_post` attempt got a bare `invalid_client` with no hint; (3) client registration demands an exact HTTPS redirect URL even for a device-grant-only client that never redirects. *One improvement:* publish the MCP-served guides as plain linkable web pages, and state the registered token-endpoint auth method on the portal's credential screen.
 
 ### 🤖 Curvegrid AI Agent
 

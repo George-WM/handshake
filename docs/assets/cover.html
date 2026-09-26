@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  body {
+    width: 1280px; height: 720px; overflow: hidden;
+    background: #0d1117;
+    background-image: radial-gradient(ellipse 900px 600px at 85% 20%, #16202e 0%, #0d1117 60%);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: #e6edf3; display: flex; align-items: center;
+  }
+  .left {
+    width: 520px; padding: 0 0 0 72px; z-index: 2;
+  }
+  .mark { font-size: 64px; font-weight: 700; letter-spacing: -0.02em; }
+  .mark .emoji { font-size: 52px; margin-right: 6px; }
+  .tagline { font-size: 26px; margin-top: 20px; line-height: 1.35; color: #e6edf3; }
+  .sub { font-size: 17px; margin-top: 14px; color: #8b949e; line-height: 1.5; }
+  .stack {
+    position: absolute; left: 72px; bottom: 48px;
+    font-size: 14px; color: #8b949e; letter-spacing: 0.04em;
+  }
+  .stack b { color: #58a6ff; font-weight: 400; }
+  .shot {
+    position: absolute; right: -60px; top: 60px; width: 760px; height: 640px;
+    transform: rotate(-2.5deg);
+    border: 1px solid #30363d; border-radius: 12px;
+    box-shadow: 0 24px 80px rgba(0,0,0,.6);
+    overflow: hidden; background: #0d1117;
+  }
+  .shot img { width: 1080px; display: block; margin-left: -8px; margin-top: -4px; }
+  .verdicts { margin-top: 26px; display: flex; gap: 10px; font-size: 14px; }
+  .v { border: 1px solid #30363d; border-radius: 999px; padding: 4px 14px; }
+  .v.pass { color: #3fb950; } .v.block { color: #f85149; } .v.esc { color: #d29922; }
+</style>
+</head>
+<body>
+  <div class="left">
+    <div class="mark"><span class="emoji">🤝</span>Handshake</div>
+    <div class="tagline">A guardrail for AI&nbsp;agent payments</div>
+    <div class="sub">Screen every x402 payment. Escalate to a human.</div>
+    <div class="verdicts">
+      <span class="v pass">PASS · auto-pay</span>
+      <span class="v block">BLOCK · sanctioned</span>
+      <span class="v esc">ESCALATE · World ID</span>
+    </div>
+  </div>
+  <div class="shot"><img src="screenshot-2-block.png" /></div>
+  <div class="stack">x402 · Intercepta · World ID for Agents</div>
+</body>
+</html>

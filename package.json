@@ -12,6 +12,7 @@
     "verify:harness": "tsx scripts/verify/verify-harness.ts",
     "verify:seller": "tsx scripts/verify/verify-seller.ts",
     "verify:payment": "tsx scripts/verify/verify-payment.ts",
+    "verify:guard": "tsx scripts/verify/verify-guard.ts",
     "demo:pass": "tsx apps/agent/src/cli.ts pass",
     "demo:block": "tsx apps/agent/src/cli.ts block",
     "demo:escalate": "tsx apps/agent/src/cli.ts escalate",

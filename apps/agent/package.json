@@ -1,0 +1,18 @@
+{
+  "name": "@handshake/agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/pipeline.ts"
+  },
+  "dependencies": {
+    "@handshake/guard": "workspace:*",
+    "@handshake/shared": "workspace:*",
+    "@x402/core": "^2.27.0",
+    "@x402/evm": "^2.27.0",
+    "@x402/fetch": "^2.27.0",
+    "jose": "^6.2.12",
+    "viem": "^2.56.9"
+  }
+}

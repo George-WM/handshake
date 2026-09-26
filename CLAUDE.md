@@ -66,8 +66,8 @@ packages/shared env 로딩/검증 유틸 + 파이프라인 이벤트 타입 (인
 3. ✅ buyer 결제 e2e → `pnpm verify:payment` 통과 (settled tx 0x662b9bc1…, buyer 지갑 faucet 20 USDC 수령)
 4. ✅ guard: 라이브 `pnpm verify:intercepta` + `pnpm demo:block` 통과 (Lazarus EOA → BLOCK, 서명 전 중단)
 5. ✅ scan-token: 메인넷 등가 매핑으로 라이브 통과 (Base USDC whitelist/info; block 분기는 verify-guard 유닛 커버)
-6. 🔶 World ID ESCALATE: 승인 ✅(id_token 백엔드 검증) / 거부 ✅(dashboard 실시간 확인) / 만료 ⏳(폴러 대기 중)
-7. CLI 데모 3종 최종 점검 (`demo:pass` / `demo:block` / `demo:escalate` 원커맨드)
+6. ✅ World ID ESCALATE: 승인(id_token 백엔드 검증, demo:escalate 풀 파이프라인 $0.50 정산) / 거부(dashboard 실시간 확인) / 만료(expired_token, 액션 미실행) 3경로 라이브 통과
+7. ✅ CLI 데모 3종 연속 통과: demo:pass(정산) / demo:block(BLOCK, 미서명) / demo:escalate(승인→정산 tx 0x05a334…)
 8. ✅ dashboard: PASS/BLOCK 라이브 렌더 확인 (Intercepta 원본 traits, BLOCK 사유), World ID QR/상태 패널 확인
 9. README 90% (Intercepta 피드백 반영 완료; 데모 영상 링크만 남음)
 
@@ -85,7 +85,7 @@ packages/shared env 로딩/검증 유틸 + 파이프라인 이벤트 타입 (인
 ### Curvegrid AI Agent
 - [ ] README: 1문장 요약 / 팀 소개 + 소셜 핸들 / 셋업·테스트 방법
 
-## 외부 블로커 현황 (2026-09-27)
-- Intercepta API 키: Typeform 신청 완료, 대기 중 → 도착 즉시 `.env` `INTERCEPTA_API_KEY` 설정 후 `pnpm demo:block` 라이브 검증
-- World ID 포털 등록: 사용자 진행 중 → `.env` `WORLD_ID_CLIENT_ID`/`WORLD_ID_CLIENT_SECRET` 설정 후 `pnpm demo:escalate`
-- buyer/seller는 로컬 생성 스로어웨이 테스트넷 키 (.env에 저장, 절대 실자산 금지). buyer 잔액: 20 USDC (Base Sepolia)
+## 외부 블로커 현황 (2026-09-27 갱신: 모두 해소)
+- Intercepta API 키 ✅ / World ID client_id·secret ✅ — 라이브 검증 완료, .env에 저장됨
+- buyer/seller는 로컬 생성 스로어웨이 테스트넷 키 (.env에 저장, 절대 실자산 금지). buyer 잔액: ~19.4 USDC (Base Sepolia)
+- 남은 일: 데모 영상 촬영(docs/demo-script.md), README에 영상 링크. 레포: https://github.com/George-WM/handshake (public)
